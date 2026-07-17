@@ -1,0 +1,59 @@
+=====================================================
+Ikemen GO Frame Meter - Integration Guide
+=====================================================
+
+This guide will help you install the SF6-style Frame Meter into your Ikemen GO build.
+
+1. Place the File
+-----------------
+Copy the `framemeter.lua` file you just received into the `script` folder of your Ikemen GO installation.
+(Example: `C:\YourIkemenDirectory\script\framemeter.lua`)
+
+2. Hook it into the Engine
+--------------------------
+Since you want this for Training Mode, you need to open your engine's `training.lua` file (usually located in `script/training.lua` or `script/main.lua` depending on the build).
+
+Add the following near the top of your `training.lua` file where other scripts are imported:
+
+```lua
+local FrameMeter = require("script.framemeter")
+FrameMeter.init()
+```
+
+3. Update and Draw
+------------------
+Inside your `training.lua` script, there will be a main game loop or a rendering function (often hooked via `hook.add("system.postDraw", ...)` or inside a while loop for the training menu).
+
+Add these two lines so they execute every frame:
+
+```lua
+-- Add this where game logic updates
+FrameMeter.update()
+
+-- Add this where rendering happens (post-draw)
+FrameMeter.draw()
+```
+
+### Alternative Hook Method (For Advanced Builds)
+If your Ikemen GO build heavily uses the event hook system, you can inject it without modifying `training.lua` directly by creating a new script (e.g. `script/framemeter_hook.lua`) that does this:
+
+```lua
+local FrameMeter = require("script.framemeter")
+FrameMeter.init()
+
+hook.add("system.postDraw", "SF6FrameMeterDraw", function()
+    -- Only show in training mode (GameMode 3 or whatever your training mode ID is)
+    if main.gameMode == "training" then
+        FrameMeter.update()
+        FrameMeter.draw()
+    end
+end)
+```
+Then just `require("script.framemeter_hook")` in your `main.lua`.
+
+4. Customization
+----------------
+Open `framemeter.lua` with a text editor (like Notepad++) to tweak:
+- `MAX_FRAMES = 80` (How wide the meter goes)
+- `box_w = 4`, `box_h = 10` (Size of the boxes)
+- The `colors` table (To adjust the exact tint of the Startup, Active, Recovery, etc.)
