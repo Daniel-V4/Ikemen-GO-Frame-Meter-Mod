@@ -29,7 +29,8 @@ local function parseAirFile(filepath)
         local comment_pos = line:find(";")
         if comment_pos then line = line:sub(1, comment_pos - 1) end
         line = line:match("^%s*(.-)%s*$")
-        local anim_id = line:match("^%[[Bb][Ee][Gg][Ii][Nn] [Aa][Cc][Tt][Ii][Oo][Nn] (%d+)%]")
+        local lower_line = line:lower()
+        local anim_id = lower_line:match("^%[begin action (%d+)%]")
         if anim_id then
             current_anim = tonumber(anim_id)
             anim_data[current_anim] = {}
@@ -38,9 +39,9 @@ local function parseAirFile(filepath)
             next_clsn1 = false
             next_clsn1_set = false
         elseif current_anim then
-            local clsn1_def = line:match("^[Cc][Ll][Ss][Nn]1[Dd][Ee][Ff][Aa][Uu][Ll][Tt]:%s*(%d+)")
+            local clsn1_def = lower_line:match("^clsn1default:%s*(%d+)")
             if clsn1_def then default_clsn1 = (tonumber(clsn1_def) > 0) end
-            local clsn1_spec = line:match("^[Cc][Ll][Ss][Nn]1:%s*(%d+)")
+            local clsn1_spec = lower_line:match("^clsn1:%s*(%d+)")
             if clsn1_spec then
                 next_clsn1 = (tonumber(clsn1_spec) > 0)
                 next_clsn1_set = true
@@ -63,31 +64,40 @@ local function parseAirFile(filepath)
     return anim_data
 end
 
-local function findCharFiles(char_name)
-    local files = getDirectoryFiles("chars")
-    if type(files) == "table" then
-        for i, file_path in ipairs(files) do
-            if file_path:match("%.def$") or file_path:match("%.DEF$") then
-                local f = io.open(file_path, "r")
+local function findCharFiles(char_name, p)
+    if start and start.p and start.p[p] and start.p[p].t_selected and start.p[p].t_selected[1] then
+        local ref = start.p[p].t_selected[1].ref
+        local char_data = start.f_getCharData(ref)
+        if char_data then
+            local def_path = char_data.def
+            local dir = char_data.dir or ""
+            if dir ~= "" and not dir:match("[/\\]$") then
+                dir = dir .. "/"
+            end
+            if not def_path and dir ~= "" then
+                local files = getDirectoryFiles(dir)
+                if type(files) == "table" then
+                    for _, f in ipairs(files) do
+                        if f:lower():match("%.def$") then
+                            def_path = dir .. f
+                            break
+                        end
+                    end
+                end
+            end
+            
+            if def_path then
+                local air_file = nil
+                local cns_files = {}
+                local f = io.open(def_path, "r")
                 if f then
-                    local found_name = false
-                    local air_file = nil
-                    local cns_files = {}
                     local in_files = false
                     for line in f:lines() do
                         local comment_pos = line:find(";")
                         if comment_pos then line = line:sub(1, comment_pos - 1) end
-                        
-                        if line:match("^%s*%[[Ii][Nn][Ff][Oo]%]") then in_files = false end
-                        if line:match("^%s*%[[Ff][Ii][Ll][Ee][Ss]%]") then in_files = true end
-                        
-                        local match_name = line:match('^%s*name%s*=%s*"(.-)"')
-                        if not match_name then match_name = line:match('^%s*name%s*=%s*([^"].-)%s*$') end
-                        
-                        local match_displayname = line:match('^%s*displayname%s*=%s*"(.-)"')
-                        if not match_displayname then match_displayname = line:match('^%s*displayname%s*=%s*([^"].-)%s*$') end
-                        
-                        if (match_name and match_name == char_name) or (match_displayname and match_displayname == char_name) then found_name = true end
+                        local lower_line = line:lower()
+                        if lower_line:match("^%s*%[info%]") then in_files = false end
+                        if lower_line:match("^%s*%[files%]") then in_files = true end
                         
                         if in_files then
                             local k, v = line:match("^%s*(%w+)%s*=%s*(.-)%s*$")
@@ -102,14 +112,12 @@ local function findCharFiles(char_name)
                         end
                     end
                     f:close()
-                    if found_name then
-                        local air_path = air_file and resolvePath(file_path, air_file) or nil
-                        local cns_paths = {}
-                        for _, cns in ipairs(cns_files) do
-                            table.insert(cns_paths, resolvePath(file_path, cns))
-                        end
-                        return air_path, cns_paths
+                    local air_path = air_file and resolvePath(def_path, air_file) or nil
+                    local cns_paths = {}
+                    for _, cns in ipairs(cns_files) do
+                        table.insert(cns_paths, resolvePath(def_path, cns))
                     end
+                    return air_path, cns_paths
                 end
             end
         end
@@ -127,28 +135,29 @@ local function parseCnsFiles(paths)
             for line in f:lines() do
                 local comment_pos = line:find(";")
                 if comment_pos then line = line:sub(1, comment_pos - 1) end
+                local lower_line = line:lower()
                 
-                local state_match = line:match("^%s*%[[Ss][Tt][Aa][Tt][Ee][Dd][Ee][Ff]%s+([%-%d]+)")
+                local state_match = lower_line:match("^%s*%[statedef%s+([%-%d]+)")
                 if state_match then
                     current_state = tonumber(state_match)
                     in_hitdef = false
                 else
-                    if line:match("^%s*%[[Ss][Tt][Aa][Tt][Ee]%s+") then
+                    if lower_line:match("^%s*%[state%s+") then
                         in_hitdef = false
                     end
                     if current_state then
-                        if line:match("^%s*type%s*=%s*[Hh][Ii][Tt][Dd][Ee][Ff]") then
+                        if lower_line:match("^%s*type%s*=%s*hitdef") then
                             in_hitdef = true
                             if not state_data[current_state] then
                                 state_data[current_state] = { attr = "", guardflag = "" }
                             end
                         end
                         if in_hitdef and state_data[current_state] then
-                            local attr = line:match("^%s*[Aa][Tt][Tt][Rr]%s*=%s*(.-)%s*$")
+                            local attr = lower_line:match("^%s*attr%s*=%s*(.-)%s*$")
                             if attr and state_data[current_state].attr == "" then
                                 state_data[current_state].attr = attr:upper()
                             end
-                            local guardflag = line:match("^%s*[Gg][Uu][Aa][Rr][Dd][Ff][Ll][Aa][Gg]%s*=%s*(.-)%s*$")
+                            local guardflag = lower_line:match("^%s*guardflag%s*=%s*(.-)%s*$")
                             if guardflag and state_data[current_state].guardflag == "" then
                                 state_data[current_state].guardflag = guardflag:upper()
                             end
@@ -162,12 +171,12 @@ local function parseCnsFiles(paths)
     return state_data
 end
 
-local function cachePlayerHitboxes(char_name)
+local function cachePlayerHitboxes(char_name, p)
     if hitboxes_cache[char_name] then return end
     hitboxes_cache[char_name] = {}
     cns_cache[char_name] = {}
     
-    local air_path, cns_paths = findCharFiles(char_name)
+    local air_path, cns_paths = findCharFiles(char_name, p)
     if air_path then
         local data = parseAirFile(air_path)
         if data then hitboxes_cache[char_name] = data end
@@ -230,19 +239,17 @@ local function getPlayerFrameState(p)
     local np = numproj()
     local proj_spawned = false
     
-    cachePlayerHitboxes(char_name)
+    cachePlayerHitboxes(char_name, p)
     
     if p == 1 then
-        if nh > (FrameMeter.p1_helpers or 0) or np > (FrameMeter.p1_projs or 0) then proj_spawned = true end
+        if nh ~= (FrameMeter.p1_helpers or 0) or np > (FrameMeter.p1_projs or 0) then proj_spawned = true end
         FrameMeter.p1_helpers = nh
         FrameMeter.p1_projs = np
     else
-        if nh > (FrameMeter.p2_helpers or 0) or np > (FrameMeter.p2_projs or 0) then proj_spawned = true end
+        if nh ~= (FrameMeter.p2_helpers or 0) or np > (FrameMeter.p2_projs or 0) then proj_spawned = true end
         FrameMeter.p2_helpers = nh
         FrameMeter.p2_projs = np
     end
-    
-    cachePlayerHitboxes(char_name)
 
     local atk_type = ""
     if cns_cache[char_name] and cns_cache[char_name][s] then
@@ -376,37 +383,7 @@ local function getPlayerFrameState(p)
     return STATE_IDLE
 end
 
-local function getPotsCtrl(p)
-    local oldid = id()
-    if not player(p) then return false end
-    local c = (ctrl() == true or ctrl() == 1)
-    local t = time()
-    local s = stateno()
-    local mt = movetype()
-    playerid(oldid)
-    
-    local state = FrameMeter["p" .. p .. "_ctrl_state"]
-    if not state then
-        state = { lag_ctrl = c, s = s, prev_s = s, mt = mt, prev_mt = mt }
-        FrameMeter["p" .. p .. "_ctrl_state"] = state
-    end
-    
-    if t == 0 then
-        state.prev_s = state.s
-        state.prev_mt = state.mt
-    end
-    
-    local pot_ctrl = state.lag_ctrl
-    if not c or (t <= 1 and ((state.prev_s >= 120 and state.prev_s <= 155) or (mt ~= 'H' and state.prev_mt == 'H'))) then
-        pot_ctrl = c
-    end
-    
-    state.lag_ctrl = c
-    state.s = s
-    state.mt = mt
-    
-    return pot_ctrl
-end
+
 function FrameMeter.update()
     local oldid = id()
     local engine_frozen = false
@@ -440,12 +417,39 @@ function FrameMeter.update()
     FrameMeter.last_t2 = t2
     FrameMeter.last_s2_raw = s2_raw
 
+    FrameMeter.match_time = (FrameMeter.match_time or 0) + 1
+    
     if engine_frozen then
         return
     end
-
+    
     local s1 = getPlayerFrameState(1)
     local s2 = getPlayerFrameState(2)
+    
+    if s1 == STATE_IDLE and (history.p1[#history.p1] or STATE_IDLE) ~= STATE_IDLE then
+        FrameMeter.p1_end_time = FrameMeter.match_time
+    end
+    if s2 == STATE_IDLE and (history.p2[#history.p2] or STATE_IDLE) ~= STATE_IDLE then
+        FrameMeter.p2_end_time = FrameMeter.match_time
+    end
+    
+    if FrameMeter.p1_attacking_last and s1 == STATE_IDLE and s2 == STATE_IDLE then
+        FrameMeter.adv_display = (FrameMeter.p2_end_time or 0) - (FrameMeter.p1_end_time or 0)
+        FrameMeter.p1_attacking_last = false
+    end
+    if FrameMeter.p2_attacking_last and s2 == STATE_IDLE and s1 == STATE_IDLE then
+        FrameMeter.adv_display = (FrameMeter.p1_end_time or 0) - (FrameMeter.p2_end_time or 0)
+        FrameMeter.p2_attacking_last = false
+    end
+    
+    if s1 == STATE_STARTUP and (history.p1[#history.p1] or STATE_IDLE) ~= STATE_STARTUP then
+        FrameMeter.p1_attacking_last = true
+        FrameMeter.p2_attacking_last = false
+    end
+    if s2 == STATE_STARTUP and (history.p2[#history.p2] or STATE_IDLE) ~= STATE_STARTUP then
+        FrameMeter.p2_attacking_last = true
+        FrameMeter.p1_attacking_last = false
+    end
     
     if s1 == STATE_IDLE then
         FrameMeter.p1_idle_ticks = (FrameMeter.p1_idle_ticks or 0) + 1
@@ -489,7 +493,7 @@ function FrameMeter.draw()
     if not FrameMeter.txt_pool then FrameMeter.txt_pool = {} end
     local txt_idx = 1
     local function drawTextNum(txt_str, x, y, r, g, b, font_str, align, height)
-        font_str = font_str or "f-4x6.def"
+        font_str = font_str or "f-6x9.def"
         align = align or 0
         height = height or -1
         if not text or not text.create then return end
@@ -553,7 +557,7 @@ function FrameMeter.draw()
             display_startup, p1_active, p1_recovery, total_duration, adv)
     end
         
-    drawTextNum(stats_str, screen_w / 2, start_y - 45, 255, 255, 255, "Open_Sans.def", 0, 16)
+    drawTextNum(stats_str, screen_w / 2, start_y - 45, 255, 255, 255, "f-6x9.def", 0, 16)
     
     drawBox(start_x - 2, start_y - 2, total_w + 2, (box_h * 2) + (spacing * 4), 0, 0, 0, 150)
     
@@ -576,7 +580,7 @@ function FrameMeter.draw()
             if current_group ~= nil then
                 local center_i = start_i + (count - 1) / 2
                 local txt_x = start_x + (center_i - 1) * (box_w + spacing) + (box_w / 2)
-                drawTextNum(count, txt_x, start_y - 14, 255, 255, 255, "Open_Sans.def", 0, 16)
+                drawTextNum(count, txt_x, start_y - 14, 255, 255, 255, "f-6x9.def", 0, 16)
             end
             current_group = grp
             count = 1
@@ -588,7 +592,7 @@ function FrameMeter.draw()
     if current_group ~= nil then
         local center_i = start_i + (count - 1) / 2
         local txt_x = start_x + (center_i - 1) * (box_w + spacing) + (box_w / 2)
-        drawTextNum(count, txt_x, start_y - 14, 255, 255, 255, "Open_Sans.def", 0, 16)
+        drawTextNum(count, txt_x, start_y - 14, 255, 255, 255, "f-6x9.def", 0, 16)
     end
     
     local p2_current_group = nil
@@ -605,7 +609,7 @@ function FrameMeter.draw()
             if p2_current_group ~= nil then
                 local center_i = p2_start_i + (p2_count - 1) / 2
                 local txt_x = start_x + (center_i - 1) * (box_w + spacing) + (box_w / 2)
-                drawTextNum(p2_count, txt_x, start_y + (box_h * 2) + (spacing * 2) + 4, 255, 255, 255, "Open_Sans.def", 0, 16)
+                drawTextNum(p2_count, txt_x, start_y + (box_h * 2) + (spacing * 2) + 4, 255, 255, 255, "f-6x9.def", 0, 16)
             end
             p2_current_group = grp
             p2_count = 1
@@ -617,7 +621,7 @@ function FrameMeter.draw()
     if p2_current_group ~= nil then
         local center_i = p2_start_i + (p2_count - 1) / 2
         local txt_x = start_x + (center_i - 1) * (box_w + spacing) + (box_w / 2)
-        drawTextNum(p2_count, txt_x, start_y + (box_h * 2) + (spacing * 2) + 4, 255, 255, 255, "Open_Sans.def", 0, 16)
+        drawTextNum(p2_count, txt_x, start_y + (box_h * 2) + (spacing * 2) + 4, 255, 255, 255, "f-6x9.def", 0, 16)
     end
     
     local adv = FrameMeter.adv_display or 0
