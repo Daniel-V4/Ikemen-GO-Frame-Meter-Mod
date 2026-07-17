@@ -1,41 +1,44 @@
-# Ikemen GO Frameviewer Mod
+# Ikemen GO Framemeter Mod
 
-Here is a SF6-style Frame Meter for Ikemen GO training mode! You can finally see your startup, active, and recovery frames directly during gameplay instead of just guessing. It takes hard work to put this together and have it make sense, so I hope you all enjoy it!
+An SF6-style Frame Meter for Ikemen GO training mode. This mod provides visual feedback on startup, active, and recovery frames directly during gameplay for an easier time labbing.
 
-> [!WARNING]
-> **DISCLAIMER**: Listen, this is still a very early work in progress. The static information (the numbers above the bar) is still very unstable and jank right now. I highly recommend using this alongside POTS training information if you want the most accurate data.
+> **Disclaimer**: This mod is still a very early work in progress. The static information (the numbers displayed above the bar) is currently very unstable. It is highly recommended to use this mod alongside the POTS Attack Data Display or a dedicated training character. It also stands untested for online play, and while it only affects the training mode, it is not recommended to use it online. Please use at your own risk. 
 
 ## Color Legend
 
-Here's how to read the heat of battle on the meter:
+Here's the standard convention for the mod:
 
-- **Gray**: Idle (you can act!)
+- **Gray**: Idle (can act)
 - **Green**: Startup frames
 - **Red**: Active frames
 - **Blue**: Recovery frames
-- **Purple**: That first frame of idle where you still can't input anything (effectively your last frame of recovery before you can move)
-- **Cyan**: Movement stuff (dashes, jump startup, etc.)
-- **Yellow**: Blockstun and Hitstun (when you're locked down!)
+- **Purple**: The first frame of idle where you still cannot input anything (effectively your last frame of recovery)
+- **Cyan**: Special movement frames (e.g., dashes, jump startup, etc.)
+- **Yellow**: Blockstun and Hitstun
 
-## Compatibility
+## Compatibilit
 
-M.U.G.E.N and Ikemen characters are coded in all sorts of crazy ways, so it's not perfect for everyone:
+Because characters in Ikemen GO/M.U.G.E.N can be coded in vastly different ways, compatibility varies:
 
-- **Works Great**: Tested and working well with POTS and CvS2 style characters.
-- **Incompatible but Still Useful**: Characters with completely custom state machines (like Toaru style) might not parse perfectly. But the meter will still accurately show when you're in a move and when you're not, which is still super useful for timing!
+- **Fully Compatible**: Tested and working well with **POTS** and **CvS2** style characters.
+- **Partially Incompatible**: Characters with highly custom state machines (like **Toaru** style characters) may not parse perfectly. However, the meter will still accurately show when you are in a move versus when you are not, so it's still useful for labbing things like pressure strings.
 
 **Requirements for full compatibility:**
-To have the frame data parsed perfectly without garbage, a character needs to use standard M.U.G.E.N state definitions (`[StateDef]`), standard `HitDef`s, and standard animation clsn (hitboxes). If a char relies heavily on custom helper-based physics or completely overrides state controllers for basic attacks, it's gonna be jank.
+To have frame data (startup/active/recovery) parsed perfectly, a character must use standard M.U.G.E.N state definitions (`[StateDef]`), standard hit definitions (`HitDef`), and standard animation clsn (hitbox) definitions without heavy reliance on external custom helper-based physics or completely overridden state controllers for basic attacks.
+
+## Sister Mod
+
+If you're also interested in having control over the dummy's reversals and a comprehensive command list for your character, check out its sister mod: [Ikemen GO Reversal Mod](../reversal_mod/README.md).
 
 ## Screenpack Requirements
 
-None! It doesn't matter what screenpack you use, the frame meter draws directly on the screen using the engine's built-in functions. 
+Currently, there are no specific screenpack requirements. The frame meter draws directly on the screen using the engine's built-in drawing functions and scales to fit most standard resolutions.
 
 ## Installation
 
-1. Copy `frameviewer.lua` into your `external/mods/` directory.
-2. Copy the entire `frameviewer` folder into your `external/mods/` directory as well.
-3. Launch Ikemen GO, hop into Training Mode, and feel the burn!
+1. Copy `frameviewer.lua` to your `external/mods/` directory.
+2. Copy the entire `frameviewer` folder to your `external/mods/` directory.
+3. Launch Ikemen GO. The mod should load automatically when you enter Training Mode.
 
 ## Configuration
 
@@ -46,4 +49,7 @@ You can customize the appearance of the frame meter by editing `framemeter.lua` 
 
 ## Bug Reporting
 
-If you find bugs or some char that completely breaks the meter, please open an Issue on the GitHub repository. Try to include the character you were using (with a download link if you can), what move caused it, and a screenshot so I can see what kind of garbage is happening. 
+If you encounter issues, bugs, or characters that severely break the frame meter, please open an **Issue** on the GitHub repository for this mod. Be sure to include:
+- The character you were testing (with a download link if possible).
+- The specific move or action that caused the issue.
+- A screenshot of the frame meter if it behaves unexpectedly.
