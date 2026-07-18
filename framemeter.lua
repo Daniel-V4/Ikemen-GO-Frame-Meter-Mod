@@ -521,14 +521,14 @@ function FrameMeter.draw()
             if state == STATE_RECOVERY or state == STATE_TRANSITION then p1_recovery = p1_recovery + 1
             elseif state == STATE_ACTIVE then phase = 2; p1_active = p1_active + 1
             elseif state == STATE_STARTUP then phase = 3; p1_startup = p1_startup + 1
-            else break end
+            elseif state ~= STATE_IDLE then break end
         elseif phase == 2 then
             if state == STATE_ACTIVE then p1_active = p1_active + 1
             elseif state == STATE_STARTUP then phase = 3; p1_startup = p1_startup + 1
-            else break end
+            elseif state ~= STATE_IDLE then break end
         elseif phase == 3 then
             if state == STATE_STARTUP then p1_startup = p1_startup + 1
-            else break end
+            elseif state ~= STATE_IDLE then break end
         end
     end
     
@@ -557,7 +557,7 @@ function FrameMeter.draw()
             display_startup, p1_active, p1_recovery, total_duration, adv)
     end
         
-    drawTextNum(stats_str, screen_w / 2, start_y - 45, 255, 255, 255, "f-6x9.def", 0, 16)
+    drawTextNum(stats_str, screen_w / 2, start_y - 45, 255, 255, 255, "name14.def", 0, 13)
     
     drawBox(start_x - 2, start_y - 2, total_w + 2, (box_h * 2) + (spacing * 4), 0, 0, 0, 150)
     
