@@ -1,5 +1,8 @@
 # Ikemen GO Framemeter Mod
 
+**Version:** 0.1.0 (Beta)  
+**Tested on:** Ikemen GO Nightly (Build 2025-04-05)
+
 An SF6-style Frame Meter for Ikemen GO training mode. This mod provides visual feedback on startup, active, and recovery frames directly during gameplay for an easier time labbing.
 
 > **Disclaimer**: This mod is still a very early work in progress. The static information (the numbers displayed above the bar) is currently very unstable. It is highly recommended to use this mod alongside the POTS Attack Data Display or a dedicated training character. It also stands untested for online play, and while it only affects the training mode, it is not recommended to use it online. Please use at your own risk. 
