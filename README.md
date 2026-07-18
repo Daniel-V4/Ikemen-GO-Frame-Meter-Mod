@@ -7,7 +7,7 @@ An SF6-style Frame Meter for Ikemen GO training mode. This mod provides visual f
 
 > **Disclaimer**: This mod is still a very early work in progress. The static information (the numbers displayed above the bar) is currently very unstable. It is highly recommended to use this mod alongside the POTS Attack Data Display or a dedicated training character. It also stands untested for online play, and while it only affects the training mode, it is not recommended to use it online. Please use at your own risk. 
 
-If you're also interested in having control over the dummy's reversals and a comprehensive command list for your character, check out its sister mod: [Ikemen GO Reversal Mod](../reversal_mod/README.md).
+If you're also interested in having control over the dummy's reversals and a comprehensive command list for your character, check out its sister mod: [Ikemen GO Reversal Mod](https://github.com/Daniel-V4/Ikemen-GO-Reversal-Mod).
 
 ## Color Legend
 
@@ -21,7 +21,7 @@ Here's the standard convention for the mod:
 - **Cyan**: Special movement frames (e.g., dashes, jump startup, etc.)
 - **Yellow**: Blockstun and Hitstun
 
-## Compatibilit
+## Compatibility
 
 Because characters in Ikemen GO/M.U.G.E.N can be coded in vastly different ways, compatibility varies:
 
